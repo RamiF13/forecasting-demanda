@@ -220,3 +220,4 @@ __marimo__/
 
 # Datasets
 data/raw/*.csv
+!data/raw/.gitkeep
