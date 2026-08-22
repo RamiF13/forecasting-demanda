@@ -79,3 +79,25 @@ Antes de entrenar cualquier modelo de ML, se definen baselines triviales. Su fun
 **Baseline 1 (naive estacional):** predecir que las ventas de un día serán iguales a las del mismo día de la semana anterior. Captura la estacionalidad semanal, fuerte en retail. Es la vara principal que el modelo debe superar.
 
 Ambos se miden con WMAPE, igual que el modelo, para que la comparación sea directa. La progresión naive simple -> naive estacional -> modelo de ML permite mostrar que cada capa de sofisticación aporta una mejora medible.
+
+## Supuestos de inventario
+
+El pronóstico de demanda no es directamente una cantidad a pedir. Para traducir uno en otro se declaran supuestos explícitos del caso ficticio, todos configurables:
+
+| Parámetro | Valor por defecto | ¿Qué es? |
+|---|---|---|
+| R (ciclo de revisión) | 7 días | Cada cuánto el gerente revisa el stock y pide |
+| L (lead time) | 3 días | Demora del proveedor entre pedido y entrega |
+| Nivel de servicio | 95% | Probabilidad objetivo de no quedar sin stock durante el período de protección |
+
+**Nivel de servicio configurable.** Se deja como parámetro para que la decisión de riesgo quede en manos del gerente, no cableada en el código. El 95% es el estándar de retail de consumo. Un nivel más alto reduce el riesgo de quiebre pero aumenta el stock de seguridad (más capital inmovilizado); uno más bajo, lo inverso. El sistema mostrará cómo cambia la cantidad sugerida entre 90%, 95% y 99% (análisis de sensibilidad).
+
+**¿Cómo entra en el cálculo?** El nivel de servicio se traduce en un factor z (95% -> z ≈ 1.65, 99% -> z ≈ 2.33), que multiplica la desviación del error de pronóstico para dar el stock de seguridad. Cuanto más alto el nivel de servicio, más grande el z, más colchón.
+
+**Conexión con el modelo.** La desviación que alimenta el stock de seguridad no es la de la demanda, sino la del error de pronóstico del modelo (sus residuos en backtesting). Un modelo más preciso genera menos stock de seguridad a igual nivel de servicio, es decir, menos capital inmovilizado. Ahí se traduce la calidad del forecast en valor de negocio.
+
+**Stock actual.** No se simula: es un input del usuario. En la interfaz, el gerente informa cuánto stock tiene, y el sistema calcula cuánto pedir. Así se evita fabricar una tabla de inventario ficticia y se refleja el flujo real de una consulta de reposición sin integración con ERP.
+
+## Objetivo final verificable
+
+Cada 7 días, un pipeline orquestado corre de punta a punta sin intervención manual y publica, para las 1782 combinaciones tienda × familia (1609 con modelo de ML, 173 de baja rotación con regla simple), la demanda proyectada a 10 días y la cantidad sugerida de reposición bajo supuestos explícitos de lead time y nivel de servicio, con WMAPE mejor que naive estacional validado en backtesting temporal, consultable en una interfaz web desplegada (a definir en el punto 9 del roadmap)
