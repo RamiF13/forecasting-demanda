@@ -6,21 +6,22 @@ Período cubierto por el dataset: 2013-01-01 a 2017-08-15 (1688 días de calenda
 
 Tabla de hechos del proyecto.
 
-3.000.888 filas × 6 columnas (id, date, store_nbr, family, sales, onpromotion)
-PK: (date, store_nbr, family). date viene como texto en el CSV, requiere conversión a datetime al cargar
-Rango de fechas: 2013-01-01 a 2017-08-15
-1782 combinaciones tienda×familia (54 × 33). Panel completo: no hay combinaciones ausentes
-No existe granularidad de SKU. El nivel más fino de producto es family (33 familias)
-4 días faltantes en el calendario: los 25 de diciembre de 2013, 2014, 2015 y 2016 (tiendas cerradas por Navidad)
+- 3.000.888 filas × 6 columnas (id, date, store_nbr, family, sales, onpromotion)
+- PK: (date, store_nbr, family). date viene como texto en el CSV, requiere conversión a datetime al cargar
+- Rango de fechas: 2013-01-01 a 2017-08-15
+- 1782 combinaciones tienda×familia (54 × 33). Panel completo: no hay combinaciones ausentes
+- No existe granularidad de SKU. El nivel más fino de producto es family (33 familias)
+- 4 días faltantes en el calendario: los 25 de diciembre de 2013, 2014, 2015 y 2016 (tiendas cerradas por Navidad)
 
 Decisión tomada: completar esos 4 días como filas con venta cero, más una feature binaria de "día trabajado". La feature no cubre solo Navidad: también tiene que contemplar los Work Day y Bridge de holidays_events.
 
 ## holidays_events.csv
 
-Exógena con fecha. No es dimensión: no se puede unir sin agregar filas.
+Exógena con fecha.
 
 - 350 filas x 6 columnas (date, type, locale, locale_name, description, transferred)
 - PK: (date, description)
+
 Ninguna columna sola puede ser PK: ninguna llega a 350 valores distintos
 "description" es texto libre, lo que hace la clave frágil ante cambios de escritura. Se usa por falta de alternativa
 38 fechas se repiten. Un join directo por date contra train sería uno-a-muchos y multiplicaría filas de ventas sin avisar
@@ -98,3 +99,15 @@ Ninguno describe el negocio. Único uso posible: test.csv indica qué horizonte 
 | `oil.csv` | Exógena |
 | `test.csv` | Artefacto de Kaggle |
 | `sample_submission.csv` | Artefacto de Kaggle |
+
+
+## Granularidad del pronóstico
+
+El pronóstico se hace a nivel de  **tienda x familia de producto x día**.
+
+Esta granularidad no es una elección de diseño, es la que impone el dataset utilizado: 
+`train.csv` no incluye una columna de producto individual. Su nivel de 
+desagregación más fino es `family`, con 33 categorías (BEVERAGES, DAIRY, 
+PRODUCE, entre otras.). `store_nbr` identifica cada tienda de forma individual 
+(54 tiendas), sin agregación por ciudad ni cluster.
+
