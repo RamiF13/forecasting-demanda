@@ -225,3 +225,6 @@ data/raw/*.csv
 # Notebooks
 
 .ipynb_checkpoints/
+
+# .env
+.env
