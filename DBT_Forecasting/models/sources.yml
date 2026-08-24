@@ -1,0 +1,13 @@
+version: 2
+
+sources:
+  - name: raw
+    schema: public
+    tables:
+    - name: train
+    - name: stores
+    - name: oil
+    - name: holidays_events
+    - name: transactions
+    - name: test
+    - name: sample_submission
