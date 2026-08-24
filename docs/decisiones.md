@@ -101,3 +101,26 @@ El pronóstico de demanda no es directamente una cantidad a pedir. Para traducir
 ## Objetivo final verificable
 
 Cada 7 días, un pipeline orquestado corre de punta a punta sin intervención manual y publica, para las 1782 combinaciones tienda × familia (1609 con modelo de ML, 173 de baja rotación con regla simple), la demanda proyectada a 10 días y la cantidad sugerida de reposición bajo supuestos explícitos de lead time y nivel de servicio, con WMAPE mejor que naive estacional validado en backtesting temporal, consultable en una interfaz web desplegada (a definir en el punto 9 del roadmap)
+
+
+## Carga cruda (capa raw)
+
+### Destino
+Los siete CSV se cargan en PostgreSQL 17, corriendo en un contenedor Docker con volumen persistente. La versión se fija de forma explícita (postgres:17) para que el entorno sea reproducible en el tiempo.
+
+Se descartó SQLite pese a su simplicidad, porque bloquea el archivo completo en cada escritura (un solo escritor a la vez), lo que genera conflictos con la orquestación en paralelo prevista para el hito 10 (Airflow). PostgreSQL maneja escrituras concurrentes sin ese problema. Como beneficio secundario, incorpora Docker y Postgres al stack, ambos estándar en entornos de datos reales.
+
+### Origen de los datos
+Los CSV crudos no se versionan en el repositorio: train.csv pesa ~116 MB, por encima del límite de 100 MB por archivo de GitHub. Se obtienen mediante la API de Kaggle; el procedimiento se documenta en el README. La exclusión es por tamaño: son datos públicos de Kaggle, sin restricción de licencia que impida compartirlos.
+
+### Principio de la capa cruda
+La capa raw es copia fiel del origen: no se transforma, ni limpia nada. Las fechas se guardan como texto tal como vienen en el CSV; la conversión a tipos de fecha es trabajo de la capa de staging. Esto preserva la capacidad de auditar contra la fuente y evita enterrar errores de transformación en la carga.
+
+### Reproducibilidad
+El script se puede reejecutar sin efectos colaterales: cada tabla se recrea desde cero (if_exists='replace'), dejando siempre un estado idéntico al CSV, sin duplicados ni residuos de corridas previas.
+
+### Rendimiento
+La carga masiva usa el comando COPY nativo de PostgreSQL en lugar de inserciones fila por fila. La estructura de cada tabla se crea con to_sql sobre un DataFrame vacío (para inferir tipos), y los datos se cargan por COPY desde un buffer en memoria. Con COPY, la carga de train (3M de filas) pasa de demorar minutos a tomar ~16 segundos.
+
+### Credenciales
+Las credenciales de conexión viven en un archivo .env excluido del repositorio, nunca hardcodeadas en el código.
