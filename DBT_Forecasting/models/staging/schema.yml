@@ -1,0 +1,128 @@
+version: 2
+
+models: 
+  - name: stg_train
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns:
+              - date
+              - store_number
+              - family          
+    columns:
+      - name: date
+        tests:
+          - not_null
+      - name: store_number
+        tests:
+          - not_null
+      - name: family
+        tests:
+          - not_null
+      - name: sales
+        tests:
+          - not_null 
+
+  - name: stg_transactions
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns:
+              - date
+              - store_number
+    columns:
+      - name: date
+        tests:
+          - not_null
+      - name: store_number
+        tests:
+          -  not_null
+
+
+  - name: stg_holidays_events
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns:
+              - date
+              - description
+    columns:
+      - name: date
+        tests:
+          -  not_null
+      - name: description
+        tests: 
+        - not_null
+      - name: "type"
+        tests:
+        - not_null
+      - name: locale
+        tests:
+        - not_null
+      - name: locale_name
+        tests:
+          - not_null
+      - name: transferred
+        tests:
+          - not_null
+
+
+
+  - name: stg_oil
+    columns:
+      - name: date
+        tests:
+          - unique
+          - not_null
+      # OIL - No necesita test por lo que no va aquí
+
+
+  - name: stg_stores
+    columns:
+      - name: store_number
+        tests:
+          - unique
+          - not_null
+      - name: city
+        tests:
+          - not_null
+      - name: state
+        tests:
+          - not_null
+      - name: "type"
+        tests:
+          - not_null
+      - name: cluster
+        tests:
+          - not_null
+
+
+  - name: stg_test 
+    columns:
+      - name: id
+        tests:
+          - unique
+          - not_null
+      - name: "date"
+        tests:
+          - not_null
+      - name: store_number
+        tests:
+          - not_null
+      - name: family
+        tests:
+          - not_null
+      - name: onpromotion
+        tests:
+          - not_null
+
+
+  - name: stg_sample_submission
+    columns:
+      - name: id
+        tests:
+          - unique
+          - not_null
+      - name: sales
+        tests:
+          - not_null

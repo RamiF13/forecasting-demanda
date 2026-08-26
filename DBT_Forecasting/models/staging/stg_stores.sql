@@ -1,2 +1,6 @@
-SELECT store_nbr, city, "state", "type", cluster 
+SELECT store_nbr as store_number,
+city,
+"state",
+"type",
+cluster 
 FROM {{source('raw','stores')}}
