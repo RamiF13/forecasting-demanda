@@ -124,3 +124,13 @@ La carga masiva usa el comando COPY nativo de PostgreSQL en lugar de inserciones
 
 ### Credenciales
 Las credenciales de conexión viven en un archivo .env excluido del repositorio, nunca hardcodeadas en el código.
+
+## Capa de staging con DBT
+
+### ¿Qué se hizo?: se creó una capa de staging con DBT (materializada como vistas) que toma las 7 tablas crudas del schema public y produce 7 modelos stg_* en el schema staging. Las transformaciones aplicadas son de limpieza estructural únicamente: casteo de tipos (date de texto a tipo fecha real) y renombrado de columnas (dcoilwtico a oil_price, store_nbr a store_number).
+
+### Decisión: qué transforma staging y qué no. La capa de staging se limita a limpieza estructural (tipos y nombres). Deliberadamente NO hace imputación ni relleno de huecos: por ejemplo, los 43 nulos de oil_price y las fechas faltantes de fin de semana quedan sin tocar. El motivo es que la imputación es una decisión de modelado, no de limpieza, y mezclarla en staging rompería la trazabilidad. Staging debe ser una imagen fiel de la fuente, con los tipos corregidos: cualquiera que compare una tabla cruda con su stg_ correspondiente debe ver los mismos datos, solo que bien tipados y nombrados. El relleno de huecos (forward fill del oil, reindexado del calendario), donde es una decisión explícita y documentada.
+
+### Decisión: incluir los artefactos de Kaggle. Se construyeron modelos de staging y tests también para test y sample_submission, que son artefactos del formato de competencia de Kaggle y no datos operativos del caso de uso. Se los mantuvo para dejar abierta la opción de generar una submission de Kaggle más adelante, sin tener que volver a tocar la capa de staging.
+
+### Tests: se declararon 32 tests de calidad de datos sobre los modelos de staging usando tests genéricos de DBT (not_null, unique) y dbt_utils.unique_combination_of_columns para las claves primarias compuestas. Los tests codifican las claves y restricciones halladas en la auditoría del hito 2 (por ejemplo, la PK compuesta date + store_number + family de stg_train). Nota: oil_price no lleva test not_null porque sus 43 nulos son esperados y forman parte de la fuente.
