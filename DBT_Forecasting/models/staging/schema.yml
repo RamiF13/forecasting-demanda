@@ -126,3 +126,4 @@ models:
       - name: sales
         tests:
           - not_null
+  
