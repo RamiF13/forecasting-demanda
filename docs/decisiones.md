@@ -127,10 +127,19 @@ Las credenciales de conexión viven en un archivo .env excluido del repositorio,
 
 ## Capa de staging con DBT
 
-### ¿Qué se hizo?: se creó una capa de staging con DBT (materializada como vistas) que toma las 7 tablas crudas del schema public y produce 7 modelos stg_* en el schema staging. Las transformaciones aplicadas son de limpieza estructural únicamente: casteo de tipos (date de texto a tipo fecha real) y renombrado de columnas (dcoilwtico a oil_price, store_nbr a store_number).
+### ¿Qué se hizo?: 
+Se creó una capa de staging con DBT (materializada como vistas) que toma las 7 tablas crudas del schema public y produce 7 modelos stg_* en el schema staging. Las transformaciones aplicadas son de limpieza estructural únicamente: casteo de tipos (date de texto a tipo fecha real) y renombrado de columnas (dcoilwtico a oil_price, store_nbr a store_number).
 
-### Decisión: qué transforma staging y qué no. La capa de staging se limita a limpieza estructural (tipos y nombres). Deliberadamente NO hace imputación ni relleno de huecos: por ejemplo, los 43 nulos de oil_price y las fechas faltantes de fin de semana quedan sin tocar. El motivo es que la imputación es una decisión de modelado, no de limpieza, y mezclarla en staging rompería la trazabilidad. Staging debe ser una imagen fiel de la fuente, con los tipos corregidos: cualquiera que compare una tabla cruda con su stg_ correspondiente debe ver los mismos datos, solo que bien tipados y nombrados. El relleno de huecos (forward fill del oil, reindexado del calendario), donde es una decisión explícita y documentada.
+### Decisión: 
+Qué transforma staging y qué no. La capa de staging se limita a limpieza estructural (tipos y nombres). Deliberadamente NO hace imputación ni relleno de huecos: por ejemplo, los 43 nulos de oil_price y las fechas faltantes de fin de semana quedan sin tocar. El motivo es que la imputación es una decisión de modelado, no de limpieza, y mezclarla en staging rompería la trazabilidad. Staging debe ser una imagen fiel de la fuente, con los tipos corregidos: cualquiera que compare una tabla cruda con su stg_ correspondiente debe ver los mismos datos, solo que bien tipados y nombrados. El relleno de huecos (forward fill del oil, reindexado del calendario), donde es una decisión explícita y documentada.
 
-### Decisión: incluir los artefactos de Kaggle. Se construyeron modelos de staging y tests también para test y sample_submission, que son artefactos del formato de competencia de Kaggle y no datos operativos del caso de uso. Se los mantuvo para dejar abierta la opción de generar una submission de Kaggle más adelante, sin tener que volver a tocar la capa de staging.
+### Decisión:
+incluir los artefactos de Kaggle. Se construyeron modelos de staging y tests también para test y sample_submission, que son artefactos del formato de competencia de Kaggle y no datos operativos del caso de uso. Se los mantuvo para dejar abierta la opción de generar una submission de Kaggle más adelante, sin tener que volver a tocar la capa de staging.
 
-### Tests: se declararon 32 tests de calidad de datos sobre los modelos de staging usando tests genéricos de DBT (not_null, unique) y dbt_utils.unique_combination_of_columns para las claves primarias compuestas. Los tests codifican las claves y restricciones halladas en la auditoría del hito 2 (por ejemplo, la PK compuesta date + store_number + family de stg_train). Nota: oil_price no lleva test not_null porque sus 43 nulos son esperados y forman parte de la fuente.
+### Tests: 
+se declararon 32 tests de calidad de datos sobre los modelos de staging usando tests genéricos de DBT (not_null, unique) y dbt_utils.unique_combination_of_columns para las claves primarias compuestas. Los tests codifican las claves y restricciones halladas en la auditoría del hito 2 (por ejemplo, la PK compuesta date + store_number + family de stg_train). Nota: oil_price no lleva test not_null porque sus 43 nulos son esperados y forman parte de la fuente.
+
+## Correciones
+
+### Se eliminó la columna id de stg_train.
+Originalmente se mantuvo en staging como parte de la limpieza estructural sin cuestionarla. Al diseñar la reconstrucción del calendario en el hito 6 (agregar filas para los 4 días de Navidad ausentes), se identificó que id no tiene forma de generarse con un valor coherente para esas filas sintéticas: es un correlativo de fila propio del CSV de origen. No cumplía ninguna función y complicaba la construcción de filas nuevas. A diferencia de stg_test y stg_sample_submission, donde id sí se mantiene porque es la clave para emparejar predicciones con filas al armar una submission de Kaggle.
