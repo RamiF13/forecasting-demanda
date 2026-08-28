@@ -22,7 +22,9 @@ models:
       - name: sales
         tests:
           - not_null 
-
+      - name: onpromotion
+        tests:
+          - not_null
   - name: stg_transactions
     tests:
       - dbt_utils.unique_combination_of_columns:
@@ -37,7 +39,9 @@ models:
       - name: store_number
         tests:
           -  not_null
-
+      - name: transactions
+        tests:
+          - not_null
 
   - name: stg_holidays_events
     tests:
