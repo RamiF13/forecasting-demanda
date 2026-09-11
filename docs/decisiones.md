@@ -143,3 +143,21 @@ se declararon 32 tests de calidad de datos sobre los modelos de staging usando t
 
 ### Se eliminó la columna id de stg_train.
 Originalmente se mantuvo en staging como parte de la limpieza estructural sin cuestionarla. Al diseñar la reconstrucción del calendario en el hito 6 (agregar filas para los 4 días de Navidad ausentes), se identificó que id no tiene forma de generarse con un valor coherente para esas filas sintéticas: es un correlativo de fila propio del CSV de origen. No cumplía ninguna función y complicaba la construcción de filas nuevas. A diferencia de stg_test y stg_sample_submission, donde id sí se mantiene porque es la clave para emparejar predicciones con filas al armar una submission de Kaggle.
+
+## Feature "work_day", día laborable por tienda
+
+Se construyó la feature work_day (booleana) en el modelo int_work_day, que indica si una tienda operó comercialmente en una fecha dada. Responde únicamente la pregunta "¿abrieron las tiendas?".
+
+Fuente y cruce. La feature surge de cruzar el panel (int_train_full) con stg_holidays_events, usando stg_stores como puente para resolver la geografía. El match con un feriado depende de su locale: los National aplican a todas las tiendas, los Regional solo a las tiendas cuyo state coincide con el locale_name, los Local solo a las tiendas cuya city coincide. Se verificó que todos los locale_name de feriados Local y Regional matchean contra city y state de stores respectivamente (ningún feriado queda huérfano).
+
+Lógica de cierre por tipo de feriado. Un día NO se trabaja (false) solo si hay un feriado que implica cierre real. La clasificación por type:
+
+Holiday con transferred = false -> cierra
+Holiday con transferred = true -> NO cierra (el feriado se trasladó a otra fecha, el día original quedó laborable)
+Transfer, Bridge -> cierran
+Work Day, Event -> NO cierran (son días laborables pese a figurar en la tabla de feriados)
+Additional -> NO cierra
+
+Decisión sobre Additional. Los Additional son días marcados alrededor de un feriado principal ("Navidad-4" a "Navidad-1", "Navidad+1" y vísperas del Día de la Madre o Año Nuevo). Aunque figuran en el calendario oficial de feriados, para un supermercado son días de alta actividad comercial, no de cierre (la semana previa a Navidad es usualmente un pico de ventas).
+
+Colapso de múltiples feriados. Como un mismo día-tienda puede tener varios feriados simultáneos (un National y un Local), se agrupa por date, store_number, family y se colapsa con BOOL_AND sobre la condición de "día trabajado". El día se considera trabajado solo si todos los feriados aplicables son laborables, si al menos uno implica cierre, el día no se trabaja.
