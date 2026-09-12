@@ -36,3 +36,9 @@ models:
       - name: work_day
         tests:
           - not_null
+  - name: int_calendar
+    columns:
+      - name: date
+        tests:
+          - unique
+          - not_null
