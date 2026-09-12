@@ -178,3 +178,12 @@ El modelo "int_calendar" tiene granularidad de fecha (una fila por día). Las fe
 Se descartó la feature de estación. Se evaluó incluir una feature de estación del año y se descartó por dos razones: es redundante con month_number (la estación se deriva del mes), y porque Ecuador, al estar sobre la línea ecuatorial, no tiene estaciones marcadas como lo son en otras latitudes. Imponer las cuatro estaciones clásicas sería una categoría que no corresponde a la realidad del país al cual pertenece este modelo.
 
 Nota sobre week_day. Se guarda como texto (nombre del día) en lugar de número. El nombre se limpia con TRIM para eliminar el padding de espacios que agrega TO_CHAR en Postgres. El tratamamiento de la misma en el modelo se tratará en la etapa del modelado.
+
+## Feature onpromotion
+
+Se analizó la columna onpromotion del panel para decidir si requería alguna transformación. La columna es un conteo, indica cuántos ítems de esa familia estaban en promoción ese día en esa tienda. Toma valores desde 0 hasta 741, con promedio 2.6 y con el 80% de las filas en 0 (2.396.687 de 3.008.016).
+
+Es una distribución fuertemente sesgada: un pico enorme en cero y una cola larga de valores altos, concentrados en familias de alta rotación con muchas promociones.
+
+### Decisión
+Se deja la columna cruda, sin transformar. El tratamiento del sesgo corresponde a la etapa de modelado, del mismo modo que el encoding de las variables categóricas. La capa intermedia conserva el dato limpio y crudo; cómo se transforma para el algoritmo se decide según el modelo elegido.
