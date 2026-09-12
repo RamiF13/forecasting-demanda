@@ -161,3 +161,20 @@ Additional -> NO cierra
 Decisión sobre Additional. Los Additional son días marcados alrededor de un feriado principal ("Navidad-4" a "Navidad-1", "Navidad+1" y vísperas del Día de la Madre o Año Nuevo). Aunque figuran en el calendario oficial de feriados, para un supermercado son días de alta actividad comercial, no de cierre (la semana previa a Navidad es usualmente un pico de ventas).
 
 Colapso de múltiples feriados. Como un mismo día-tienda puede tener varios feriados simultáneos (un National y un Local), se agrupa por date, store_number, family y se colapsa con BOOL_AND sobre la condición de "día trabajado". El día se considera trabajado solo si todos los feriados aplicables son laborables, si al menos uno implica cierre, el día no se trabaja.
+
+## Features de calendario: int_calendar
+
+Se creó el modelo int_calendar, una tabla de dimensión de fecha con una fila por cada día (1688 filas, correspondientes a las fechas distintas del panel).
+Contiene features derivadas de la fecha:
+
+month_number: número de mes (1-12), captura estacionalidad anual.
+day_of_month: día del mes (1-31), captura posibles efectos de cobro.
+week_day: nombre del día de la semana en inglés (Monday-Sunday), captura el patrón semanal de compra.
+
+### Granularidad
+El modelo "int_calendar" tiene granularidad de fecha (una fila por día). Las features de calendario dependen únicamente de la fecha, no de la tienda ni la familia, así que calcularlas una sola vez por día (sobre las fechas distintas, no sobre las 3M de filas del panel) evita recalcular lo mismo 1782 veces. Se une al panel por fecha en el ensamblado final del hito.
+
+### Decisión:
+Se descartó la feature de estación. Se evaluó incluir una feature de estación del año y se descartó por dos razones: es redundante con month_number (la estación se deriva del mes), y porque Ecuador, al estar sobre la línea ecuatorial, no tiene estaciones marcadas como lo son en otras latitudes. Imponer las cuatro estaciones clásicas sería una categoría que no corresponde a la realidad del país al cual pertenece este modelo.
+
+Nota sobre week_day. Se guarda como texto (nombre del día) en lugar de número. El nombre se limpia con TRIM para eliminar el padding de espacios que agrega TO_CHAR en Postgres. El tratamamiento de la misma en el modelo se tratará en la etapa del modelado.
