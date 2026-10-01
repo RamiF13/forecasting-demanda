@@ -187,3 +187,19 @@ Es una distribución fuertemente sesgada: un pico enorme en cero y una cola larg
 
 ### Decisión
 Se deja la columna cruda, sin transformar. El tratamiento del sesgo corresponde a la etapa de modelado, del mismo modo que el encoding de las variables categóricas. La capa intermedia conserva el dato limpio y crudo; cómo se transforma para el algoritmo se decide según el modelo elegido.
+
+## Feature de petróleo: int_oil
+
+Se creó el modelo int_oil, que expone el precio diario del petróleo (oil_price_filled) con una fila por cada fecha del período (1688), sin nulos. El petróleo es una variable exógena relevante para Ecuador, país productor de petróleo, donde el precio del crudo afecta la economía y el consumo.
+
+### Problema a resolver
+La tabla cruda de oil tiene dos tipos de huecos: 43 nulos en fechas que existen, y fechas directamente faltantes (los fines de semana y feriados de mercado, cuando el petróleo no cotiza). Como el panel de ventas tiene todas las fechas (las tiendas abren igual los fines de semana), se busca asignar un valor a cada día.
+
+### Método de imputación:
+Se utilizó el método forward fill. Los huecos se rellenan con el último precio conocido (last observation carried forward), un precio persiste hasta que cambia: si el viernes cerró en 93.12 y el fin de semana no cotiza, el precio sigue siendo 93.12. Se descartaron las alternativas: rellenar con cero (implicaría que el petróleo pasó a valer nada), con la media (metería un valor que no existió en ese momento) y la interpolación (usaría el valor del día siguiente, es decir información del futuro, lo que introduce leakage). El forward fill solo mira hacia atrás, nunca al futuro, así que es seguro para un pipeline predictivo.
+
+### Borde inicial
+Se decidió utilizar backward fill. El forward fill no puede llenar el primer día si ya es nulo (no hay valor anterior que arrastrar). El 1 de enero de 2013 era nulo, así que ese único caso se rellena con el primer precio conocido de la serie (backward fill). Es aceptable porque es el borde más antiguo del dataset: no hay nada anterior que predecir, así que no genera leakage.
+
+### Implementación
+Se parte de int_calendar (todas las fechas) con un LEFT join a oil (trae el precio donde existe, nulo donde no). El forward fill se resuelve con dos window functions: un conteo acumulado de valores no nulos que agrupa cada hueco con su último precio conocido, y un MAX por grupo que reparte ese precio a las filas nulas del grupo. El borde inicial se tapa con un COALESCE contra el primer precio no nulo de la serie. Se verificó que el resultado no tiene ningún nulo en las 1688 fechas.
