@@ -42,3 +42,12 @@ models:
         tests:
           - unique
           - not_null
+  - name: int_oil
+    columns:
+      - name: date
+        tests:
+          - unique
+          - not_null
+      - name: oil_price_filled
+        tests:
+          - not_null
