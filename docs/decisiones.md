@@ -203,3 +203,28 @@ Se decidió utilizar backward fill. El forward fill no puede llenar el primer d�
 
 ### Implementación
 Se parte de int_calendar (todas las fechas) con un LEFT join a oil (trae el precio donde existe, nulo donde no). El forward fill se resuelve con dos window functions: un conteo acumulado de valores no nulos que agrupa cada hueco con su último precio conocido, y un MAX por grupo que reparte ese precio a las filas nulas del grupo. El borde inicial se tapa con un COALESCE contra el primer precio no nulo de la serie. Se verificó que el resultado no tiene ningún nulo en las 1688 fechas.
+
+## Features de lags: int_lags
+
+Se creó el modelo int_lags, con una fila por fecha, tienda y familia (3.008.016 filas, igual al panel). Expone cuatro features: lag_7, lag_14, lag_21 y lag_28, que son las ventas de la misma tienda y familia 7, 14, 21 y 28 días antes.
+
+### Cálculo
+
+Se usa la window function LAG con PARTITION BY store_number, family y ORDER BY date, de modo que cada una de las 1782 series se recorre por separado. LAG corre posiciones, no días: "7 filas atrás" equivale a "7 días atrás" ya que el panel está balanceado (una fila por día en cada serie).
+
+### Decisión: qué lags son válidos
+
+El horizonte de predicción es de 10 días. Un lag menor al horizonte usaría ventas que todavía no ocurrieron al momento de predecir los días más lejanos (por ejemplo, para predecir el día 10 con lag_7 haría falta la venta del día 3, desconocida). Con un único modelo para todo el horizonte, el lag mínimo válido es 10.
+
+Entre los lags válidos se eligieron múltiplos de 7, para que el lag caiga en el mismo día de la semana que el día a predecir (el patrón semanal es el más fuerte en la venta de un supermercado). Varias semanas hacia atrás (14, 21, 28) dan robustez ante semanas atípicas y permiten captar tendencia.
+
+lag_7 se calcula pero solo es válido para predicciones a 7 días o menos; su uso se define más adelante en el proyecto.
+
+### Decisión: días cerrados como nulo
+
+Antes de calcular los lags, la venta de los días en que la tienda estuvo cerrada (work_day = false) se reemplaza por nulo. Si no, el valor 0 de un día cerrado llegaría al lag como si fuera una caída real de la demanda. Se eligió anular en lugar de agregar una columna con el work_day del día rezagado por dos motivos: los días cerrados son muy pocos para que el modelo aprenda a interpretar esa combinación, y las medias móviles que se calculen después ignoran los nulos, mientras que un 0 las contaminaría.
+
+
+### Tests
+
+Se testean unicidad de la combinación de las columnas date, store_number, family, y not_null en esas tres columnas. Los lags no llevan not_null ya que cuentan nulos esperados al inicio de cada serie y en los días que vienen de un cierre.
