@@ -17,6 +17,16 @@ SELECT
     "date",
     store_number,
     family,
+    AVG(sales_lag) OVER(
+    PARTITION BY store_number, family
+    ORDER BY "date"
+    ROWS BETWEEN 16 PRECEDING AND 10 PRECEDING
+    ) AS avg_7,
+    AVG(sales_lag) OVER(
+    PARTITION BY store_number, family
+    ORDER BY "date"
+    ROWS BETWEEN 37 PRECEDING AND 10 PRECEDING
+    ) AS avg_28,
     LAG(sales_lag, 7) OVER(
         PARTITION BY store_number, family
         ORDER BY "date"
