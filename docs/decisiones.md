@@ -253,3 +253,37 @@ Se promedia la venta con los días cerrados en nulo, la misma columna base de lo
 Cuando no hay suficiente historia para llenar la ventana, AVG promedia los valores disponibles en lugar de devolver nulo. En los primeros días de cada serie, avg_28 es en realidad el promedio de pocos días. Se decidió no corregirlo en esta capa, y más adelante, excluir del entrenamiento los primeros 37 días del período (65.934 filas, 2,2% del panel), donde la ventana de 28 días no está completa.
 
 Las medias móviles no llevan not_null: tienen nulos legítimos en los primeros 10 días de cada serie. Sí llevan un test de rango (mínimo 0), ya que las ventas nunca son negativas.
+
+
+## Mart de entrenamiento: mart_training_dataset
+
+Se creó la capa marts, con schema propio en Postgres, y su primer modelo: mart_training_dataset. Es la tabla que consume el modelo de ML: una fila por fecha, tienda y familia (3.008.016 filas), con el target y todas las features creadas.
+
+### ¿Por qué en marts y como tabla?
+
+Las piezas de intermediate son features sueltas que por sí solas no sirven para entrenar. Este modelo las ensambla en el producto final, por eso vive en marts. Se materializa como tabla porque une cinco modelos sobre 3 millones de filas (costoso de calcular) y se va a leer muchas veces durante el entrenamiento y la validación.
+
+### Ensamblado
+
+La base es int_train_full (el panel), y el resto se agrega con LEFT JOIN:
+
+int_work_day e int_lags, por date, store_number y family.
+int_calendar e int_oil, solo por date. Son joins de muchos a uno: cada fecha del calendario se repite en las 1782 filas del panel de ese día.
+
+Se eligió LEFT JOIN para que la tabla final conserve exactamente las filas del panel: si una feature no tuviera dato para alguna fila, la fila no desaparece en silencio, queda con un nulo que los tests detectan.
+
+### Columnas
+Clave: date, store_number, family.
+Target: sales.
+Features: onpromotion, work_day, lag_7, lag_14, lag_21, lag_28, avg_7, avg_28, month_number, day_of_month, week_day, oil_price_filled.
+
+lag_7 se incluye pero solo es válido para predicciones a 7 días o menos (ver la sección de lags).
+
+### Tests
+
+Los tests del mart cubren lo que el ensamblado puede romper:
+
+Unicidad de la combinación date, store_number, family: ningún join duplicó filas.
+not_null en work_day, oil_price_filled y month_number: como son columnas sin nulos legítimos, un nulo indicaría que su join no encontró pareja.
+
+El join con int_lags no se puede verificar así, porque sus columnas tienen nulos legítimos. Queda cubierto porque int_lags tiene la misma clave y la misma cantidad de filas que el panel, con su propio test de unicidad.
