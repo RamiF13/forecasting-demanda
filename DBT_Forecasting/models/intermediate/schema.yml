@@ -81,4 +81,13 @@ models:
       - name: family
         tests:
           - not_null
-        
+      - name: avg_7
+        tests:
+          - dbt_utils.accepted_range:
+              arguments:
+                min_value: 0
+      - name: avg_28
+        tests:
+          - dbt_utils.accepted_range:
+              arguments:
+                min_value: 0
