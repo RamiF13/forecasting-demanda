@@ -228,3 +228,28 @@ Antes de calcular los lags, la venta de los días en que la tienda estuvo cerrad
 ### Tests
 
 Se testean unicidad de la combinación de las columnas date, store_number, family, y not_null en esas tres columnas. Los lags no llevan not_null ya que cuentan nulos esperados al inicio de cada serie y en los días que vienen de un cierre.
+
+### Medias móviles: avg_7 y avg_28
+
+Se agregaron a int_lags dos medias móviles de las ventas: avg_7 y avg_28, el promedio de 7 y 28 días de la misma tienda y familia. Se calculan con AVG como window function, con el mismo PARTITION BY store_number, family y ORDER BY date que los lags, y un marco de ventana explícito (ROWS BETWEEN ... PRECEDING AND 10 PRECEDING).
+
+### Decisiones:
+#### La ventana termina 10 días atrás
+
+Por la misma regla del horizonte que los lags: el día más reciente que puede entrar en el promedio es el de 10 días antes. Una media móvil "de los últimos 7 días" que termine en el día anterior incluiría ventas que todavía no ocurrieron al predecir los días más lejanos. Por eso avg_7 promedia de 16 a 10 días atrás, y avg_28 de 37 a 10 días atrás (el inicio se calcula como 10 + tamaño de la ventana - 1).
+
+#### Ventanas de semanas completas
+
+Se eligieron 7 y 28 días porque contienen semanas completas, con la misma cantidad de cada día de la semana. Una ventana de 30 días incluiría algunos días de la semana más veces que otros y sesgaría el promedio. Tener una ventana corta y una larga permite al modelo ver tanto el nivel reciente como la tendencia (si la de 7 está por encima o por debajo de la de 28).
+
+Se descartó una media anual: el primer año de cada serie tendría promedios parciales, y su valor casi no varía, por lo que aporta poco frente a month_number y la propia identidad de la serie.
+
+#### Promediar la venta limpia
+
+Se promedia la venta con los días cerrados en nulo, la misma columna base de los lags. AVG ignora los nulos, así que un día cerrado no baja el promedio con un 0 que no representa demanda.
+
+### Ventanas incompletas al inicio
+
+Cuando no hay suficiente historia para llenar la ventana, AVG promedia los valores disponibles en lugar de devolver nulo. En los primeros días de cada serie, avg_28 es en realidad el promedio de pocos días. Se decidió no corregirlo en esta capa, y más adelante, excluir del entrenamiento los primeros 37 días del período (65.934 filas, 2,2% del panel), donde la ventana de 28 días no está completa.
+
+Las medias móviles no llevan not_null: tienen nulos legítimos en los primeros 10 días de cada serie. Sí llevan un test de rango (mínimo 0), ya que las ventas nunca son negativas.
