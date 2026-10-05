@@ -1,0 +1,35 @@
+version: 2
+models:
+  - name: mart_training_dataset
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns:
+              - date
+              - store_number
+              - family          
+    columns:
+      - name: date
+        tests:
+          - not_null
+      - name: store_number
+        tests:
+          - not_null
+      - name: family
+        tests:
+          - not_null
+      - name: sales
+        tests:
+          - not_null
+      - name: onpromotion
+        tests:
+          - not_null
+      - name: work_day
+        tests:
+          - not_null
+      - name: oil_price_filled
+        tests:
+          - not_null
+      - name: month_number
+        tests:
+          - not_null
