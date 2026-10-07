@@ -169,7 +169,7 @@ Contiene features derivadas de la fecha:
 
 month_number: número de mes (1-12), captura estacionalidad anual.
 day_of_month: día del mes (1-31), captura posibles efectos de cobro.
-week_day: nombre del día de la semana en inglés (Monday-Sunday), captura el patrón semanal de compra.
+week_day: nombre del día de la semana en inglés (Monday-Sunday), captura el patrón semanal de compra. Cuenta con un test de accepted_values con los siete días en inglés, que detecta si el TRIM deja de funcionar o si cambia el idioma de la base.
 
 ### Granularidad
 El modelo "int_calendar" tiene granularidad de fecha (una fila por día). Las features de calendario dependen únicamente de la fecha, no de la tienda ni la familia, así que calcularlas una sola vez por día (sobre las fechas distintas, no sobre las 3M de filas del panel) evita recalcular lo mismo 1782 veces. Se une al panel por fecha en el ensamblado final del hito.
