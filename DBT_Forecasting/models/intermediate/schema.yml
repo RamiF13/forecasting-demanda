@@ -53,6 +53,11 @@ models:
         tests:
           - unique
           - not_null
+      - name: week_day
+        tests:
+          - accepted_values:
+              arguments:
+                values: ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday']
   - name: int_oil
     columns:
       - name: date
