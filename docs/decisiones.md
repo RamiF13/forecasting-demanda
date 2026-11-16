@@ -287,3 +287,15 @@ Unicidad de la combinación date, store_number, family: ningún join duplicó fi
 not_null en work_day, oil_price_filled y month_number: como son columnas sin nulos legítimos, un nulo indicaría que su join no encontró pareja.
 
 El join con int_lags no se puede verificar así, porque sus columnas tienen nulos legítimos. Queda cubierto porque int_lags tiene la misma clave y la misma cantidad de filas que el panel, con su propio test de unicidad.
+
+### Limitación conocida: selección con información del período completo
+
+**Qué:** el criterio del 90% de días en cero se calculó sobre todo el período 2013-2017, y con esa lista fija se excluyen las 173 series del entrenamiento.
+
+**Por qué importa:** en el backtesting, cada corte simula un momento del pasado. Pero la lista de series excluidas se armó mirando también datos posteriores a ese momento. Una serie que vendía bien al principio y después dejó de vender quedaría excluida en un corte donde todavía no había forma de saberlo.
+
+**Magnitud:** afecta qué series se evalúan en cada corte, no lo que aprende el modelo. Se espera un efecto chico, ya que la mayoría de estas series son de baja rotación durante todo el período.
+
+**En producción no aplica:** cuando el pipeline corra, el criterio se calcula con la historia disponible hasta ese día, que es información legítima.
+
+**Posible solución:** recalcular el criterio dentro de cada corte del backtesting, usando solo los datos anteriores a ese corte. Se evalúa al diseñar el esquema walk-forward.
